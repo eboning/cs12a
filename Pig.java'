@@ -1,0 +1,15 @@
+import java.util.*;
+
+class Pig {
+public static void main (String[] args) {
+	Scanner input = new Scanner(System.in);
+	String sentence;
+	System.out.println("Welcome to the Pig Latin translator. Please enter a sentence:");
+	sentence = input.nextLine();
+	String[] words = sentence.split(" ");
+//	System.out.println(words[7]);
+	for (int i=0; i< words.length; i++){
+		System.out.println(words[i]);
+	}
+}
+}

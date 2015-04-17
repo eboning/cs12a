@@ -1,0 +1,363 @@
+/************************************************************************
+ * Program: ImageProc.java; class ImageProc				
+ * Authors: Patrick Au (xxxxx@ucsc.edu)
+ * 		Dave Rajczyk (xxxxxx@ucsc.edu)
+ *
+ * (former 12L students in the W05 Quarter).
+ * Modified by: Alex G  and  [enter your name here]
+ * CMP 12A/L; Winter 2011
+ * Lab Assignment #6
+ * 							
+ *									
+ * This is a image processing program. It has 5 basic functionalities	
+ * for the user: 1. Read 2. Edge Detection 3. Smooth 4. Save 5. Quit
+ * You will need to provide an edge detection method, as well as
+ * the method to save your file.   Also, you must add a GUI
+ * that allows users to click a button for each of the above functionality-items.
+ *									
+ * Input:								
+ * Filename to read from. Filename to write to.				
+ * (r)ead, (e)dge detection, (S)mooth, (s)ave, (q)uit
+ *									
+ * Output:								
+ * It will create pgm files in the working directory.			
+ **************************************************************************/
+
+import tio.*;
+
+class ImageProc {
+ private static int width; //These are all global variables, a very useful tool.
+ private static int height;
+
+
+ public static void main(String[] args) {
+
+	System.out.println("Welcome to the CMPS 12L Basic Image Processing Program." + "\n");
+
+	/************************************************************************************************
+	 * These are system state variables, which will keep track of what is happening with the	*
+	 * image file. If the user wants to quit the program, run will become false, which will		*
+	 * end the loop that runs the switch statement prompting the user what they wish to do.		*
+	 * When a file has been read in the first time, fileRead will be true, which, when implemented	*
+	 * in further conditional loops, determines whether the program will prompt the user if they	*
+	 * want to overwrite a file that has already been read in. If a method changes the image file,	*
+	 * imageModifed will be true. This way the program knows if it should prompt the user to	*
+	 * save the file before exiting.								*
+	 ************************************************************************************************/
+
+	boolean run = true,
+	fileRead = false,
+	imageModified = false;
+	int[][] pictureArray = new int[2][2];
+	ReadInput file;				//Create a new readInput object to read from
+	PrintFileWriter newFile;		//Create a new PrintFileWriter object to write to
+
+	do {
+	  System.out.print("What would you like to do: (r)ead, (E)dge detection, (S)mooth, (s)ave, (q)uit: ");
+	  char userSelection = (char)Console.in.readCharNonwhite();
+	  switch(userSelection) {
+	    case 'r':
+	      /******************************************************************************************
+	       * This case switch will read in a PGM file to the array pictureArray. It checks if	*
+	       * there has already been a file read in, in which case it will prompt the user if they	*
+	       * wish to overwrite the file. It also handles IO exceptions, where the file the user	*
+	       * tries to read in cannot be found or may not exist.					*
+	       ******************************************************************************************/
+	      try {
+	        if(fileRead) {
+	          System.out.print("Do you want to overwrite the file (y/n)? ");
+                  //if you want to make a GUI, you will need to set the keyboard input
+                  //to a char, for this switch.
+	    	  char choice = (char)Console.in.readCharNonwhite();
+	    	  if(choice == 'n')
+	    	    break;
+	        }
+
+               System.out.print("Enter the file to read: ");
+	        String filename = Console.in.readLineNonwhite();
+	        file = new ReadInput(filename);
+	        pictureArray = readInFile(file);
+
+                System.out.print(filename + " is ");
+	        System.out.print(pictureArray[0].length + " by ");
+	        System.out.println((pictureArray.length - 1) + ".");
+	        fileRead = true;
+	      }
+	      catch(Exception e) {
+	        System.out.println("Sorry; file wasn't found.");
+	      }
+
+	      break;
+
+	    case 's':
+
+	      /******************************************************************************************
+	       * This case switch will write out to a file the array pictureArray. It checks if		*
+	       * there is a picture in the array to save first.						*
+	       ******************************************************************************************/
+
+	      if(fileRead) {
+	        try {
+	          System.out.print("Save as: ");
+	          String newFilename = Console.in.readLineNonwhite();
+
+	          newFile = new PrintFileWriter(newFilename);
+	          writeOutFile(newFile, pictureArray);
+	          System.out.println(newFilename + " saved.");
+	          imageModified = false;
+	        }
+	        catch(Exception e) {
+	          System.out.println("Sorry; file wasn't found.");
+	        }
+	      }
+	      else {
+	        System.out.println("Sorry; there is no file to save.");
+	      }
+	      break;
+
+	    case 'S':
+
+	      /******************************************************************************************
+	       * This case switch smooths an image that is read in. It does so by going to each pixel	*
+	       * in the image and replacing the value there with the average of the 3x3 square around	*
+	       * it. This case switch checks to see if an image has been read in first.			*
+	       ******************************************************************************************/
+
+	      if(fileRead) {
+	        smooth(pictureArray);
+	        System.out.println("The image has been smoothed.");
+	        imageModified = true;
+	      }
+	      else {
+	        System.out.println("Sorry; there is no image to smooth.");
+	      }
+
+	      break;
+
+	    case 'E':
+
+	      /******************************************************************************************
+	       * This case switch detects edges in the image by use of the sobel operator, and prints   *
+	       * the locations of those edges. This case switch checks to see if an image has been read *
+               * in first.										*
+	       ******************************************************************************************/
+
+	      if (fileRead) {
+		sobel(pictureArray);
+	      }
+	      else {
+		System.out.println("Sorry; there is no image to smooth.");
+	      }
+
+	      break;
+
+	    case 'q':
+
+	      /******************************************************************************************
+	       * This case switch will quit the program. It checks if an image has been modified	*
+	       * first, in which case it asks the user if they want to save the image before exiting.	*
+	       ******************************************************************************************/
+
+	      if(imageModified) {
+	        System.out.print("Do you want to save the modified image (y/n)? ");
+	    	char choice = (char)Console.in.readCharNonwhite();
+
+	    	if(choice == 'n');				//Null statement; will do the else if not n.
+	    	else {
+	    	  try {
+	    	    System.out.print("Save as: ");
+	            String newFilename = Console.in.readLineNonwhite();
+
+	            newFile = new PrintFileWriter(newFilename);
+	            writeOutFile(newFile, pictureArray);
+	            System.out.println(newFilename + " saved.");
+	            imageModified = false;
+	          }
+	          catch(Exception e) {
+	            System.out.println("Sorry; there is no file to save.");
+	          }
+	        }
+	      }
+
+	      System.out.println("The program is ending. Bye.");
+	      run = false;
+	      break;
+
+	    default:
+	      System.out.println("That is not an option. Try again.");
+	      break;
+
+	  }
+
+	} while(run);
+
+ }
+
+/********************************************************************************
+ * This method is called to read an image file to an array.
+ * It reads from a PGM file in the working directory.
+ *										
+ * Input: A PGM file found in the working directory.
+ * Output: An instance of a ReadInput object.
+ ********************************************************************************/
+
+ public static int[][] readInFile(ReadInput file) {
+
+	String imageFormat = file.readWord();			//Stores picture format ID; not used
+	width = file.readInt();				//Stores picture width
+	height = file.readInt();				//Stores picture height
+	int scale = file.readInt();				//Stores scale value
+
+	int[][] pictureArray = new int[height + 1][width];
+	pictureArray[0][0] = scale;
+
+	for(int i = 1; i < pictureArray.length; i++) {
+	  for(int j = 0; j < pictureArray[i].length; j++)
+	    pictureArray[i][j] = file.readInt();
+	}
+
+	return pictureArray;
+
+ }
+
+/********************************************************************************
+ * This method is called to save an image in an array to a file.
+ * It outputs to a PGM file in the working directory.
+ *
+ * Input: A referenced data array and an instance of a PrintFileWriter file.
+ * Output: A PGM file created in the working directory.				
+ ********************************************************************************/
+ public static void writeOutFile(PrintFileWriter newFile, int[][] pictureArray) {
+	newFile.println("P2");
+	newFile.print(width + " ");
+	newFile.println(height);
+	newFile.println("15");
+	for (int i=1; i<pictureArray.length; i++){
+	  for (int j=0; j<pictureArray[i].length; j++){
+	    if (j>0){
+	      newFile.print(" ");
+	      if (pictureArray[i][j]<9)
+		newFile.print(" ");
+	    }
+	    newFile.print(pictureArray[i][j]);
+	  }
+	  newFile.print("\n");
+	}
+	newFile.close();
+        //Fill in this code.  Remember, the tio package has a newFile.println() method
+       //tio also has newFile.print().
+      //use newFile.close() to finalize the save.
+	
+ }
+
+ public static int[][] smooth(int[][] a) {
+
+/********************************************************************************
+*This method creates an identical 2 dimensional array,
+*and process the smooth function.
+*The smooth function is an example of mean filtering.
+*It finds the average mean of the individual pixel and its neighbors,
+*and it replaces the mean value with the starting individual pixel
+*So the location of the pixel can varies its calculations. When
+*calculating pixels that are in the corners and/or borders, the formula
+*for the mean filtering will need to be adjusted.
+*
+* Input: The referenced data array.
+* Output: A smoothed image file/data array.
+********************************************************************************/
+        //create a copy of a, to modify its values.
+        int[][] b = (int[][])a.clone();
+        int total = 0;
+        int neighbors = 0;
+        int distanceLeft = 0;
+        int distanceRight = 0;
+        int distanceUp = 0;
+        int distanceDown = 0;
+        for (int row = 1; row < height; row++)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                //get the appropriate smoothing frame
+                distanceLeft = Math.max(-1, (col-width)%width);
+                distanceRight = Math.min((col+1)%width, 1);
+                distanceUp = Math.max(-1, (row-height)%height);
+                distanceDown = Math.min((row+1)%height, 1);
+                
+                //this covers all the pixels around the current pixel.
+                for (int r = distanceUp; r <= distanceDown; r++)
+                {
+                    for (int c = distanceLeft; c <= distanceRight; c++)
+                    {
+                            total = total + a[row+r][col+c];
+                            neighbors ++;
+                    }
+                }
+                //get the average from the current pixel's
+                //neighbors
+                b[row][col] = Math.round(total/neighbors);
+            }
+        }
+        //point array a to b, in memory.
+        a=b;
+        return a;
+    }
+
+
+ public static void sobel(int[][] a) {
+
+/********************************************************************************
+*This method creates a  2 dimensional array, and process the sobel              *
+*operator. The magnitude of each pixel is compared to a threshold value given	*
+*by the user to determine the presence of an edge. When calculating pixels	*
+*that are in the corners and/or borders, the formula for the mean filtering	*
+*will need to be adjusted.                       				*
+*										*
+* Input: The referenced data array.						*
+* Output: A list of the detected edges.						*
+*********************************************************************************
+        //create an array to save T/F edge values to
+        boolean[][] b = new boolean[height][width];
+        int gx = 0;
+        int gy = 0;
+	int gsum = 0;
+	int g = 0;
+        int distanceLeft = 0;
+        int distanceRight = 0;
+        int distanceUp = 0;
+        int distanceDown = 0;
+	Scanner input = new Scanner(System.in);
+	System.out.println("Enter an integer for the edge detection threshold value:");
+	int thresh = input.nextInt();
+        for (int row = 0; row < height; row++)
+        {
+            for (int col = 0; col < width; col++)
+            {
+                //get the appropriate frame for the convolution
+                distanceLeft = Math.max(-1, (col-width)%width);
+                distanceRight = Math.min((col+1)%width, 1);
+                distanceUp = Math.max(-1, (row-height)%height);
+                distanceDown = Math.min((row+1)%height, 1);
+                
+                //this covers all the pixels around the current pixel.
+                for (int r = distanceUp; r <= distanceDown; r++)
+                {
+                    for (int c = distanceLeft; c <= distanceRight; c++)
+                    {
+                            total = total + a[row+r][col+c];
+                            neighbors ++;
+                    }
+                }
+                //get the average from the current pixel's
+                //neighbors
+                b[row][col] = Math.round(total/neighbors);
+            }
+        }
+        //point array a to b, in memory.
+        a=b;
+        return a;
+*/
+    }
+
+
+
+}//end of class
